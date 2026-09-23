@@ -1,0 +1,3 @@
+id,name,lat,lon,shift_start,shift_end,skills,equipment
+E01,Иванов Алексей,55.7512,37.6184,08:00,18:00,GPON:3;ETHERNET:2,OTDR;LAPTOP
+E02,Петров Илья,55.7712,37.5984,08:00,17:00,ETHERNET:3,LAPTOP

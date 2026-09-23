@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FieldRoute AI v0.6</title>
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--line:#dfe3e7;--muted:#68717d;--dark:#111315;--accent:#175cd3;--danger:#b42318;--ok:#067647}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:#17191c}
+header{height:70px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 18px}
+.brand b{font-size:22px}.brand span{display:block;font-size:12px;color:var(--muted)}
+.controls{display:flex;gap:7px;align-items:center}select,button{border:1px solid #d8dde3;border-radius:9px;padding:9px 11px;background:#fff;font-size:12px}button{cursor:pointer}.primary{background:#111;color:#fff;border-color:#111}.danger{background:var(--danger);color:#fff;border-color:var(--danger)}.demo{background:var(--accent);color:#fff;border-color:var(--accent)}
+.layout{display:grid;grid-template-columns:290px 1fr 310px;gap:12px;padding:12px;height:calc(100vh - 70px)}
+.panel,.card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}.head{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 13px;border-bottom:1px solid #eee;font-weight:700}
+.list{height:calc(100% - 48px);overflow:auto}.item{padding:10px 12px;border-bottom:1px solid #eee;cursor:pointer}.item:hover,.item.active{background:#eef3f7}.meta{font-size:11px;color:var(--muted);line-height:1.45;margin-top:4px}
+.center{display:grid;grid-template-rows:auto minmax(420px,1fr) auto;gap:10px;min-width:0}.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px}.kpi small{display:block;color:var(--muted);margin-bottom:4px}.kpi b{font-size:18px}
+.mapwrap{position:relative;height:100%}#map{height:100%;min-height:420px}.status{position:absolute;z-index:4;left:10px;top:10px;background:rgba(255,255,255,.94);border:1px solid #ddd;border-radius:8px;padding:7px 9px;font-size:11px}
+.summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px;font-size:13px}.summary strong{font-size:18px}.gain{color:var(--ok)}
+.right{display:flex;flex-direction:column;min-height:0}.tabs{display:flex;border-bottom:1px solid #eee}.tab{flex:1;text-align:center;padding:11px 6px;font-size:11px;cursor:pointer}.tab.active{font-weight:700;border-bottom:2px solid #111}.sidebody{flex:1;overflow:auto}.problem{padding:10px;border-bottom:1px solid #eee;border-left:4px solid #b54708}
+.badge{display:inline-block;padding:2px 6px;border-radius:999px;background:#eef1f4;font-size:10px}.urgent{background:#fee4e2;color:#b42318}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.36);z-index:999;align-items:center;justify-content:center}.modalbox{width:min(800px,94vw);max-height:90vh;overflow:auto;background:#fff;border-radius:14px;padding:18px}.reason{background:#f6f8fa;border-radius:9px;padding:12px;line-height:1.5;font-size:13px}.candidate{border:1px solid #e3e7eb;border-radius:9px;padding:10px;margin:7px 0}.candidate.sel{border-color:#78b68f;background:#f0f9f3}
+.assumption{font-size:11px;color:#7a4b00;background:#fff8e6;border:1px solid #f2d18a;border-radius:8px;padding:8px 10px;margin-top:8px}
+.demoProgress{height:8px;background:#e8edf3;border-radius:99px;overflow:hidden;margin-top:12px}.demoProgress span{display:block;height:100%;background:#175cd3;width:0%;transition:width .25s}
+
+.demoSteps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.demoStep{border:1px solid #e0e5ea;border-radius:10px;padding:12px;background:#fff}
+.demoStep b{display:block;margin-bottom:5px}
+.demoStep.active{border-color:#84adff;background:#eff4ff}
+.demoStep.done{border-color:#9ad6ae;background:#f0f9f3}
+.demoStatus{margin-top:8px;font-size:12px;color:var(--muted)}
+.demoProgress{height:8px;background:#e8edf3;border-radius:99px;overflow:hidden;margin:12px 0 4px}
+.demoProgress span{display:block;height:100%;background:#175cd3;width:0%;transition:width .25s ease}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid #cbd5e1;border-top-color:#175cd3;border-radius:50%;animation:spin .75s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+button:disabled{opacity:.55;cursor:not-allowed}
+
+
+.globalLoader{
+ position:fixed;
+ left:50%;
+ top:50%;
+ transform:translate(-50%,-50%);
+ z-index:1500;
+ display:none;
+ pointer-events:none;
+}
+.globalLoader.show{display:block}
+.loaderCard{
+ min-width:210px;
+ max-width:300px;
+ background:rgba(255,255,255,.96);
+ border:1px solid #dfe3e7;
+ border-radius:10px;
+ box-shadow:0 10px 30px rgba(0,0,0,.16);
+ padding:9px 11px;
+ display:grid;
+ grid-template-columns:18px 1fr;
+ grid-template-rows:auto auto;
+ column-gap:9px;
+ align-items:center;
+}
+.loaderSpinner{
+ width:16px;
+ height:16px;
+ grid-row:1 / span 2;
+ border:2px solid #d8e0ea;
+ border-top-color:#175cd3;
+ border-radius:50%;
+ animation:spin .8s linear infinite;
+}
+.loaderTitle{
+ font-weight:700;
+ font-size:12px;
+ line-height:1.2;
+}
+.loaderSub{
+ font-size:10px;
+ color:var(--muted);
+ margin-top:2px;
+ line-height:1.2;
+}
+
+header{min-height:70px;height:auto;padding-top:8px;padding-bottom:8px}
+.controls{flex-wrap:wrap;justify-content:flex-end}
+.headerLink{border:1px solid #d8dde3;border-radius:9px;padding:9px 11px;background:#eef1f4;color:#111;font-size:12px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.headerLink input{display:none}
+.strategyBtn{background:#fff8e6;border-color:#e8c66a;font-weight:700}
+.strategyGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.strategyCard{border:1px solid #dfe3e7;border-radius:12px;padding:13px;cursor:pointer;transition:.15s;background:#fff}
+.strategyCard:hover{border-color:#98a2b3}
+.strategyCard.selected{border:2px solid #175cd3;background:#eff4ff}
+.strategyTag{display:inline-block;padding:2px 7px;border-radius:999px;background:#dcfae6;color:#067647;font-size:10px;font-weight:700;margin-left:5px}
+.strategySteps{margin:9px 0 0;padding-left:22px;font-size:12px;line-height:1.6}
+.strategyDesc{font-size:11px;color:var(--muted);line-height:1.45;margin-top:6px}
+.strategyWarning{background:#fff8e6;border:1px solid #f2d18a;border-radius:9px;padding:9px 10px;font-size:11px;color:#7a4b00}
+@media(max-width:900px){.strategyGrid{grid-template-columns:1fr}}
+
+.engineerItem.selected{background:#eef4ff;border-left:4px solid #175cd3}
+.routeDetail{padding:10px 12px;border-top:1px solid #e7eaee;background:#fbfcfd}
+.routeDetail h4{margin:0 0 8px;font-size:12px}
+.routeStop{padding:7px 0;border-bottom:1px dashed #e5e7eb;font-size:11px}
+.routeStop:last-child{border-bottom:0}
+.currentPos{display:inline-block;margin-top:5px;padding:3px 7px;border-radius:999px;background:#e8f7ee;color:#067647;font-size:10px;font-weight:700}
+#brigadeNowMarker{width:22px;height:22px;border-radius:50%;background:#111;border:4px solid #fff;box-shadow:0 0 0 3px rgba(23,92,211,.35),0 2px 8px rgba(0,0,0,.25)}
+@media(max-width:1150px){.layout{grid-template-columns:240px 1fr}.right{display:none}.kpis{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<header>
+<div class="brand"><b>FieldRoute AI</b><span>ЛЦТ 2026 · Билайн Бизнес · v0.6.9 · 10s</span></div>
+<div class="controls">
+<select id="region">
+<option value="east">Восток</option>
+<option value="southeast">Юго-восток</option>
+<option value="southcenter">Югоцентр</option>
+<option value="custom" id="customRegion" disabled>Пользовательский набор</option>
+</select>
+<a class="headerLink" href="/static/templates/engineers_v06.csv" download>Шаблон инженеров</a>
+<a class="headerLink" href="/static/templates/jobs_v06.csv" download>Шаблон заявок</a>
+<label class="headerLink">Импорт инженеров<input id="engFile" type="file" accept=".csv,.xlsx"></label>
+<label class="headerLink">Импорт заявок<input id="jobFile" type="file" accept=".csv,.xlsx"></label>
+<button id="strategyBtn" class="strategyBtn">⚙ Стратегия: Конкурсная</button>
+<button id="allRoutesBtn">Все маршруты</button>
+<button id="demoBtn" class="demo">▶ Демо</button>
+<button id="emergencyBtn" class="danger">🚨 Срочная заявка</button>
+<button id="optimizeBtn" class="primary">Оптимизировать</button>
+</div>
+</header>
+
+<div class="layout">
+<section class="panel"><div class="head"><span>Заявки</span><span id="jobCount">—</span></div><div id="jobs" class="list"></div></section>
+
+<main class="center">
+<div class="kpis">
+<div class="kpi"><small>Задействовано инженеров</small><b id="active">—</b></div>
+<div class="kpi"><small>Пробег</small><b id="distance">—</b></div>
+<div class="kpi"><small>Назначено</small><b id="assigned">—</b></div>
+<div class="kpi"><small>SLA, доп. KPI</small><b id="sla">—</b></div>
+<div class="kpi"><small>Не назначено</small><b id="unassigned">—</b></div>
+<div class="kpi"><small>Travel Matrix</small><b id="matrix" style="font-size:12px">—</b><div class="meta" id="geometrySource">Geometry: —</div></div>
+</div>
+
+<div class="card mapwrap"><div id="map"></div><div class="status" id="mapStatus">Загрузка…</div></div>
+
+<div class="card summary">
+<div><b>Базовый план по ТЗ</b><br><strong id="baseEng">—</strong><div id="baseText">—</div></div>
+<div><b>Оптимизированный план</b><br><strong id="optEng">—</strong><div id="optText">—</div></div>
+<div><b>Результат оптимизации</b><br><strong class="gain" id="effect">—</strong><div id="effectText">—</div></div>
+</div>
+</main>
+
+<section class="panel right">
+<div class="head"><span>Контроль</span><span id="sideCount">—</span></div>
+<div class="tabs"><div class="tab active" id="tabEng">Инженеры</div><div class="tab" id="tabProb">Проблемы</div><div class="tab" id="tabData">Данные</div></div>
+<div id="engineers" class="sidebody"></div><div id="problems" class="sidebody" style="display:none"></div><div id="dataInfo" class="sidebody" style="display:none"></div>
+</section>
+</div>
+
+<div class="modal" id="whyModal"><div class="modalbox"><h3 id="whyTitle">Почему выбран этот инженер?</h3><div id="whyReason" class="reason"></div><div id="candidateList"></div><button onclick="whyModal.style.display='none'">Закрыть</button></div></div>
+
+<div class="modal" id="eventModal"><div class="modalbox" style="width:min(620px,94vw)"><h3>🚨 Срочная заявка</h3><div id="eventResult" class="reason">Добавляется аварийная P1/P2-заявка в 15:00.</div><div style="margin-top:12px"><button onclick="eventModal.style.display='none'">Закрыть</button> <button class="danger" id="runEvent">Перепланировать</button></div></div></div>
+
+<div class="modal" id="demoModal">
+  <div class="modalbox">
+    <h3>▶ Режим демонстрации</h3>
+    <div class="meta">
+      Сценарий защиты: официальный baseline → оптимизированный план → срочная заявка.
+    </div>
+
+    <div class="demoSteps">
+      <div id="ds1" class="demoStep">
+        <b>1. Базовый план по ТЗ</b>
+        Первый допустимый инженер, входной порядок заявок.
+      </div>
+      <div id="ds2" class="demoStep">
+        <b>2. Оптимизированный план</b>
+        Максимум заявок, меньше задействованных инженеров, затем пробег.
+      </div>
+      <div id="ds3" class="demoStep">
+        <b>3. Срочная заявка</b>
+        Перепланирование остатка дня и сравнение изменений.
+      </div>
+    </div>
+
+    <div id="demoText" class="reason">
+      Нажмите «Начать». На каждом шаге изменятся карта и KPI основного dashboard.
+    </div>
+
+    <div class="demoProgress"><span id="demoBar"></span></div>
+    <div id="demoStatus" class="demoStatus">Ожидание запуска</div>
+
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button id="demoClose" onclick="demoModal.style.display='none'">Закрыть</button>
+      <button class="demo" id="demoNext">Начать</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal" id="strategyModal">
+  <div class="modalbox" style="width:min(820px,95vw)">
+    <h3>⚙ Стратегия оптимизации</h3>
+    <div class="strategyWarning">Для конкурсной демонстрации рекомендуется <b>«Конкурсная»</b>: она повторяет приоритеты из ТЗ. Остальные режимы — дополнительные варианты анализа.</div>
+    <div class="strategyGrid">
+      <div class="strategyCard selected" data-strategy="official">
+        <b>🏆 Конкурсная</b><span class="strategyTag">Рекомендуется</span>
+        <ol class="strategySteps"><li><b>Назначить максимум заявок</b></li><li><b>Задействовать минимум инженеров</b></li><li><b>Минимизировать пробег</b></li></ol>
+        <div class="strategyDesc">Основной режим для оценки решения и Demo Mode.</div>
+      </div>
+      <div class="strategyCard" data-strategy="balanced"><b>⚖ Сбалансированная</b><div class="strategyDesc">Максимум заявок, умеренный баланс количества инженеров, пробега и дополнительного SLA proxy.</div></div>
+      <div class="strategyCard" data-strategy="sla_first"><b>⏱ Приоритет SLA</b><div class="strategyDesc">Сильнее предпочитает планы, где работа завершается до конца желаемого временного окна. Hard constraints ТЗ сохраняются.</div></div>
+      <div class="strategyCard" data-strategy="distance_first"><b>🛣 Минимум пробега</b><div class="strategyDesc">После максимизации числа назначенных заявок основной акцент — на суммарном пробеге.</div></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px"><button id="strategyCancel">Закрыть</button><button id="strategyApply" class="primary">Применить стратегию</button></div>
+  </div>
+</div>
+
+<div id="globalLoader" class="globalLoader">
+  <div class="loaderCard">
+    <div class="loaderSpinner"></div>
+    <div id="loaderTitle" class="loaderTitle">Выполняется…</div>
+    <div id="loaderSub" class="loaderSub">Можно продолжать работу</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js" onerror="this.onerror=null;this.src='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'"></script>
+<script>
+const $=id=>document.getElementById(id);
+let map,data=null,comparison=null,engBy={},jobBy={},markers=[],demoStep=0,loadSeq=0,routeGeometrySources=[],selectedStrategy='official',pendingStrategy='official',currentSolution=null,selectedEngineerId=null,currentPosMarker=null;
+const colors=['#2563eb','#dc2626','#16a34a','#7c3aed','#ea580c','#0891b2','#be123c','#4f46e5','#65a30d','#9333ea','#0f766e','#c026d3'];
+const tm=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const regionVal=()=>$('region').value;
+const STRATEGY_LABELS={official:'Конкурсная',balanced:'Сбалансированная',sla_first:'Приоритет SLA',distance_first:'Минимум пробега'};
+const strategyVal=()=>selectedStrategy;
+function refreshStrategyCards(){document.querySelectorAll('.strategyCard').forEach(card=>card.classList.toggle('selected',card.dataset.strategy===pendingStrategy));}
+function openStrategyModal(){pendingStrategy=selectedStrategy;refreshStrategyCards();$('strategyModal').style.display='flex';}
+
+
+
+async function fetchJSON(url, options={}){
+ const response=await fetch(url,options);
+ const text=await response.text();
+ let payload=null;
+ try{
+   payload=text ? JSON.parse(text) : null;
+ }catch(_){
+   throw new Error(
+     response.ok
+       ? 'Сервер вернул некорректный ответ.'
+       : `Ошибка сервера ${response.status}: ${text.slice(0,180)}`
+   );
+ }
+ if(!response.ok){
+   throw new Error(payload?.detail || payload?.message || `Ошибка HTTP ${response.status}`);
+ }
+ return payload;
+}
+
+function setLoading(show,title='Выполняется…',sub='Можно продолжать работу'){
+ $('loaderTitle').textContent=title;
+ $('loaderSub').textContent=sub;
+ $('globalLoader').classList.toggle('show',show);
+}
+
+
+function initMap(){
+ map=new maplibregl.Map({container:'map',center:[37.65,55.72],zoom:9.5,style:{version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'bg',type:'background',paint:{'background-color':'#eef1f4'}},{id:'osm',type:'raster',source:'osm'}]}});
+ map.addControl(new maplibregl.NavigationControl(),'top-right');
+}
+function clearMarkers(){markers.forEach(m=>m.remove());markers=[]}
+function fit(coords){if(!coords.length)return;let b=new maplibregl.LngLatBounds(coords[0],coords[0]);coords.forEach(c=>b.extend(c));map.fitBounds(b,{padding:45,maxZoom:13})}
+async function roadGeometry(route){
+ let e=engBy[route.engineer_id],coords=[{lat:e.lat,lon:e.lon},...route.stops.map(s=>({lat:jobBy[s.job_id].lat,lon:jobBy[s.job_id].lon}))];
+ if(coords.length<2)return {coordinates:coords.map(x=>[x.lon,x.lat]),source:'single-point'};
+ try{let r=await fetch('/api/route-geometry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coords})});return await r.json()}catch(e){return {coordinates:coords.map(x=>[x.lon,x.lat]),source:'straight-line-fallback'}}
+}
+async function drawRoutes(solution,seq=null){
+ $('mapStatus').textContent='Строю дорожную геометрию маршрутов…';
+ routeGeometrySources=[];
+ let routes=solution.routes.filter(r=>r.stops.length);
+ let built=await Promise.all(routes.map(async(r,i)=>{
+   let g=await roadGeometry(r);
+   routeGeometrySources.push(g.source||'unknown');
+   return {type:'Feature',geometry:{type:'LineString',coordinates:g.coordinates},properties:{id:r.engineer_id,color:colors[i%colors.length]}};
+ }));
+ if(seq!==null && seq!==loadSeq)return;
+ let geo={type:'FeatureCollection',features:built};
+ if(map.getSource('routes')) map.getSource('routes').setData(geo);
+ else{
+   map.addSource('routes',{type:'geojson',data:geo});
+   map.addLayer({id:'routes',type:'line',source:'routes',paint:{'line-color':['get','color'],'line-width':4,'line-opacity':.72}});
+   map.addLayer({id:'selectedRoute',type:'line',source:'routes',filter:['==',['get','id'],'__none__'],paint:{'line-color':['get','color'],'line-width':8,'line-opacity':1}});
+ }
+ let unique=[...new Set(routeGeometrySources)];
+ $('geometrySource').textContent='Geometry: '+(unique.length===1?unique[0]:unique.join('; '));
+ $('mapStatus').textContent='Маршруты готовы';
+}
+function drawMarkers(){
+ clearMarkers();
+ data.engineers.forEach((e,i)=>{let el=document.createElement('div');el.style.cssText='width:17px;height:17px;border-radius:50%;background:'+colors[i%colors.length]+';border:2px solid white';markers.push(new maplibregl.Marker({element:el}).setLngLat([e.lon,e.lat]).setPopup(new maplibregl.Popup().setHTML('<b>'+e.name+'</b><br>'+e.vehicle_type)).addTo(map))});
+ data.jobs.forEach(j=>{let el=document.createElement('div');el.style.cssText='width:10px;height:10px;border-radius:50%;background:'+(j.priority===2?'#b42318':'#344054')+';border:1px solid white';markers.push(new maplibregl.Marker({element:el}).setLngLat([j.lon,j.lat]).setPopup(new maplibregl.Popup().setHTML('<b>'+j.id+'</b><br>'+j.required_skill+'<br>'+tm(j.window_start)+'–'+tm(j.window_end))).addTo(map))});
+}
+function renderJobs(){
+ $('jobCount').textContent=data.jobs.length;
+ $('jobs').innerHTML=data.jobs.map(j=>`<div class="item">
+   <b>${j.id}</b> ${j.priority===2?'<span class="badge urgent">Срочная</span>':''}
+   <div class="meta">
+     ${j.bk_type} · ${j.hd_type}<br>
+     ${tm(j.window_start)}–${tm(j.window_end)} · работы/документы ${j.service_minutes} мин<br>
+     ${j.required_skill}${j.required_vehicle_type?' · '+j.required_vehicle_type:''}
+     ${j.base_normative_minutes?`<br>Норматив: ${j.base_normative_minutes} мин = дорога ${j.normative_road_minutes} + тех. ${j.technical_minutes} + документы ${j.documents_minutes}`:''}
+   </div>
+   <button style="margin-top:6px" onclick="openWhy('${j.id}')">Объяснить выбор</button>
+ </div>`).join('');
+}
+function renderEngineers(solution){
+ currentSolution=solution;
+ let routes=Object.fromEntries(solution.routes.map(r=>[r.engineer_id,r]));
+ $('engineers').innerHTML=data.engineers.map(e=>{
+   let r=routes[e.id]||{stops:[],total_distance_km:0};
+   return `<div class="item engineerItem" data-engineer="${e.id}" onclick="selectEngineer('${e.id}',this)">
+     <b>${e.name}</b> · ${r.stops.length} заявок
+     <div class="meta">${e.vehicle_type}<br>${e.skills.join(', ')}<br>Пробег: ${r.total_distance_km.toFixed(1)} км</div>
+     <div id="detail-${e.id}" style="display:none"></div>
+   </div>`;
+ }).join('');
+ $('sideCount').textContent=data.engineers.length;
+}
+
+function nowMinutes(){
+ const d=new Date(); return d.getHours()*60+d.getMinutes();
+}
+function plannedPosition(engineer,route){
+ const t=nowMinutes();
+ if(!route || !route.stops.length) return {lat:engineer.lat,lon:engineer.lon,label:'Стартовая точка',detail:'Нет назначенных заявок'};
+ let lastJob=null;
+ for(const stop of route.stops){
+   const job=jobBy[stop.job_id];
+   if(t < stop.start){
+     if(lastJob) return {lat:lastJob.lat,lon:lastJob.lon,label:'Плановая позиция',detail:'После заявки '+lastJob.id+', следующая '+stop.job_id+' в '+tm(stop.start)};
+     return {lat:engineer.lat,lon:engineer.lon,label:'Стартовая точка',detail:'Первая заявка '+stop.job_id+' в '+tm(stop.start)};
+   }
+   if(t >= stop.start && t <= stop.finish) return {lat:job.lat,lon:job.lon,label:'На заявке '+stop.job_id,detail:'Работа '+tm(stop.start)+'–'+tm(stop.finish)};
+   lastJob=job;
+ }
+ return {lat:lastJob.lat,lon:lastJob.lon,label:'Последняя плановая точка',detail:'Маршрут на сегодня завершён'};
+}
+function resetSelectedEngineer(){
+ selectedEngineerId=null;
+ document.querySelectorAll('.engineerItem').forEach(x=>x.classList.remove('selected'));
+ document.querySelectorAll('[id^="detail-"]').forEach(x=>x.style.display='none');
+ if(map.getLayer('selectedRoute')){
+   map.setFilter('selectedRoute',['==',['get','id'],'__none__']);
+   map.setPaintProperty('routes','line-opacity',.72);
+ }
+ if(currentPosMarker){currentPosMarker.remove(); currentPosMarker=null;}
+}
+function showAllRoutes(){
+ resetSelectedEngineer();
+ if(data) fit([...data.jobs.map(j=>[j.lon,j.lat]),...data.engineers.map(e=>[e.lon,e.lat])]);
+ $('mapStatus').textContent='Все маршруты';
+}
+function selectEngineer(id,el){
+ if(selectedEngineerId===id){showAllRoutes();return;}
+ resetSelectedEngineer();
+ selectedEngineerId=id;
+ el.classList.add('selected');
+
+ const engineer=engBy[id];
+ const route=(currentSolution?.routes||[]).find(r=>r.engineer_id===id)||{stops:[],total_distance_km:0};
+
+ if(map.getLayer('selectedRoute')){
+   map.setFilter('selectedRoute',['==',['get','id'],id]);
+   map.setPaintProperty('routes','line-opacity',.12);
+ }
+
+ const coords=[[engineer.lon,engineer.lat]];
+ route.stops.forEach(s=>{const j=jobBy[s.job_id]; if(j)coords.push([j.lon,j.lat]);});
+ fit(coords);
+
+ const pos=plannedPosition(engineer,route);
+ const markerEl=document.createElement('div'); markerEl.id='brigadeNowMarker';
+ currentPosMarker=new maplibregl.Marker({element:markerEl})
+   .setLngLat([pos.lon,pos.lat])
+   .setPopup(new maplibregl.Popup().setHTML('<b>'+engineer.name+'</b><br>'+pos.label+'<br><span style="font-size:11px">'+pos.detail+'</span>'))
+   .addTo(map);
+
+ const detail=$('detail-'+id);
+ detail.style.display='block';
+ detail.innerHTML=`<div class="routeDetail">
+   <h4>Маршрут бригады</h4>
+   <div class="currentPos">${pos.label} · ${tm(nowMinutes())}</div>
+   <div class="meta" style="margin-top:5px">${pos.detail}</div>
+   ${route.stops.length ? route.stops.map((s,idx)=>{
+      const j=jobBy[s.job_id];
+      return `<div class="routeStop"><b>${idx+1}. ${s.job_id}</b> · ${tm(s.start)}–${tm(s.finish)}<br><span class="meta">${j?.address||''}<br>${s.distance_km.toFixed(1)} км от предыдущей точки</span></div>`;
+   }).join('') : '<div class="meta" style="margin-top:8px">У этой бригады нет назначенных заявок.</div>'}
+   <button style="margin-top:8px" onclick="event.stopPropagation();showAllRoutes()">Показать все маршруты</button>
+ </div>`;
+
+ $('mapStatus').textContent='Маршрут: '+engineer.name;
+ currentPosMarker.togglePopup();
+}
+function renderMetrics(solution,base){
+ let m=solution.metrics,b=base.metrics,i=comparison.improvement;
+ $('active').textContent=m.active_engineers+'/'+data.engineers.length;$('distance').textContent=m.total_distance_km.toFixed(1)+' км';$('assigned').textContent=m.assigned_jobs+'/'+m.total_jobs;$('sla').textContent=(m.sla_compliance*100).toFixed(1)+'%';$('unassigned').textContent=m.unassigned_jobs;$('matrix').textContent=solution.matrix_source;
+ $('baseEng').textContent='Задействовано: '+b.active_engineers+'/'+data.engineers.length;
+ $('baseText').innerHTML='Назначено: <b>'+b.assigned_jobs+'/'+b.total_jobs+'</b><br>Не назначено: <b>'+b.unassigned_jobs+'</b><br>Пробег: <b>'+b.total_distance_km.toFixed(1)+' км</b>';
+ $('optEng').textContent='Задействовано: '+m.active_engineers+'/'+data.engineers.length;
+ $('optText').innerHTML='Назначено: <b>'+m.assigned_jobs+'/'+m.total_jobs+'</b><br>Не назначено: <b>'+m.unassigned_jobs+'</b><br>Пробег: <b>'+m.total_distance_km.toFixed(1)+' км</b><br>SLA proxy, доп.: <b>'+(m.sla_compliance*100).toFixed(1)+'%</b>';
+ let free=Math.max(0,b.active_engineers-m.active_engineers), extra=m.assigned_jobs-b.assigned_jobs, saved=b.total_distance_km-m.total_distance_km;
+ $('effect').textContent=free>0?free+' инженеров остаются свободны':'Без увеличения персонала';
+ $('effectText').innerHTML=(extra>=0?'Дополнительно назначено: <b>+'+extra+' заявок</b><br>':'Назначено меньше: <b>'+extra+' заявок</b><br>')+'Экономия пробега: <b>'+Math.max(0,saved).toFixed(1)+' км</b>'+(i.distance_pct===null?'':' / <b>'+Math.abs(i.distance_pct).toFixed(1)+'%</b>');
+}
+function renderDataInfo(){
+ let a=data.assumptions;
+ let norms=(a.normatives||[]).map(n=>`
+   <div class="routeStop">
+     <b>${n.name}</b><br>
+     <span class="meta">
+       Дорога: ${n.road_minutes} мин · Технические работы: ${n.technical_minutes} мин · Документы: ${n.documents_minutes} мин<br>
+       Базовый норматив: <b>${n.base_normative_minutes} мин</b>
+     </span>
+   </div>`).join('');
+
+ $('dataInfo').innerHTML=`
+   <div class="item"><b>Источник</b><div class="meta">${a.source}<br>${a.jobs} заявок · ${a.engineers} инженеров</div></div>
+   ${norms?`<div class="item"><b>Нормативы организатора</b><div class="meta">Источник: ${a.normatives_source||'Нормативы.xlsx'}</div>${norms}</div>`:''}
+   <div class="assumption">
+     <b>Как норматив используется в расчёте</b><br>
+     Технические работы + документы = время обслуживания заявки.<br>
+     Дорожное время = фактическое время по дорожной сети, но не меньше официального норматива дороги.<br><br>
+     <b>Остальные допущения</b><br>
+     ${a.engineer_source}<br><br>${a.duration_source}<br><br>${a.transport_source}<br><br>${a.priority_source}<br><br>
+     Координаты: ${a.coordinate_source}
+   </div>`;
+}
+async function loadAll(showOptimized=true){
+ const seq=++loadSeq;
+ const region=regionVal();
+ const regionName=$('region').options[$('region').selectedIndex].text;
+
+ setLoading(true,'Загружаю данные','Регион: '+regionName);
+ $('mapStatus').textContent='Загрузка '+regionName+'…';
+ $('jobCount').textContent='…';
+
+ try{
+   let [d,c]=await Promise.all([
+     fetchJSON('/api/dataset?region='+region),
+     fetchJSON('/api/compare?region='+region+'&road=true&seconds=10&strategy='+encodeURIComponent(strategyVal()))
+   ]);
+
+   if(seq!==loadSeq || region!==regionVal())return;
+
+   setLoading(true,'Рассчитываю маршруты','Строю дорожную геометрию и KPI');
+
+   data=d;
+   comparison=c;
+   resetSelectedEngineer();
+   engBy=Object.fromEntries(d.engineers.map(e=>[e.id,e]));
+   jobBy=Object.fromEntries(d.jobs.map(j=>[j.id,j]));
+
+   renderJobs();
+   drawMarkers();
+   renderDataInfo();
+
+   let sol=showOptimized?c.optimized:c.baseline;
+   renderMetrics(sol,c.baseline);
+   renderEngineers(sol);
+
+   await drawRoutes(sol,seq);
+   if(seq!==loadSeq || region!==regionVal())return;
+
+   fit([...d.jobs.map(j=>[j.lon,j.lat]),...d.engineers.map(e=>[e.lon,e.lat])]);
+ }catch(err){
+   if(seq===loadSeq){
+     $('mapStatus').textContent='Ошибка загрузки: '+err;
+   }
+ }finally{
+   if(seq===loadSeq)setLoading(false);
+ }
+}
+async function openWhy(id){
+ $('whyModal').style.display='flex';
+ $('whyTitle').textContent='Почему выбран инженер для заявки '+id+'?';
+ $('whyReason').textContent='Формирую объяснение…';
+ $('candidateList').innerHTML='';
+ setLoading(true,'Формирую объяснение','Анализирую ограничения и альтернативных инженеров');
+
+ try{
+   let x=await fetchJSON('/api/explain/'+id+'?region='+regionVal()+'&road=true&strategy='+encodeURIComponent(strategyVal()));
+   $('whyReason').textContent=x.rationale;
+   $('candidateList').innerHTML=x.candidates.map(c=>`<div class="candidate ${c.selected?'sel':''}"><b>${c.engineer_name}</b> ${c.selected?'<span class="badge">выбран</span>':''}<div class="meta">${c.vehicle_type} · ${c.direct_travel_minutes} мин · ${c.direct_distance_km} км<br>${c.eligible_resources?'Ресурс подходит':c.missing.map(m=>m.message).join('; ')}</div></div>`).join('');
+ }catch(err){
+   $('whyReason').textContent='Не удалось сформировать объяснение: '+err;
+ }finally{
+   setLoading(false);
+ }
+}
+async function loadProblems(){
+ setLoading(true,'Проверяю проблемы','Ищу неназначенные заявки и ограничения');
+ try{
+   let p=await fetchJSON('/api/problems?region='+regionVal()+'&road=true&strategy='+encodeURIComponent(strategyVal()));
+   $('sideCount').textContent=p.count;
+   $('problems').innerHTML=p.items.length
+     ? p.items.map(x=>`<div class="problem"><b>${x.job_id}</b> · ${x.type}<div class="meta">${x.message}<br>${x.code}</div></div>`).join('')
+     : '<div class="item">Проблем не найдено.</div>';
+ }finally{
+   setLoading(false);
+ }
+}
+function tab(name){
+ ['engineers','problems','dataInfo'].forEach(id=>$(id).style.display='none');['tabEng','tabProb','tabData'].forEach(id=>$(id).classList.remove('active'));
+ if(name==='eng'){$('engineers').style.display='block';$('tabEng').classList.add('active');$('sideCount').textContent=data.engineers.length}
+ if(name==='prob'){$('problems').style.display='block';$('tabProb').classList.add('active');loadProblems()}
+ if(name==='data'){$('dataInfo').style.display='block';$('tabData').classList.add('active');$('sideCount').textContent='i'}
+}
+
+function renderReplanMetrics(x,previousMetrics){
+ const m=x.solution.metrics;
+ $('active').textContent=m.active_engineers+'/'+x.updated_engineers.length;
+ $('distance').textContent=m.total_distance_km.toFixed(1)+' км';
+ $('assigned').textContent=m.assigned_jobs+'/'+m.total_jobs;
+ $('sla').textContent=(m.sla_compliance*100).toFixed(1)+'%';
+ $('unassigned').textContent=m.unassigned_jobs;
+ $('matrix').textContent=x.solution.matrix_source;
+
+ $('baseEng').textContent='До события: весь рабочий день';
+ $('baseText').innerHTML=
+   'Назначено: <b>'+previousMetrics.assigned_jobs+'/'+previousMetrics.total_jobs+'</b><br>'+
+   'Задействовано: <b>'+previousMetrics.active_engineers+'/'+x.updated_engineers.length+'</b><br>'+
+   'Пробег плана: <b>'+previousMetrics.total_distance_km.toFixed(1)+' км</b>';
+
+ $('optEng').textContent='Остаток дня после перепланирования';
+ $('optText').innerHTML=
+   'Обычных заявок осталось: <b>'+x.regular_remaining_jobs_count+'</b><br>'+
+   'Обычных назначено: <b>'+x.assigned_regular_after_replan+'/'+x.regular_remaining_jobs_count+'</b><br>'+
+   'Срочная заявка: <b>'+(x.emergency_assigned?'назначена':'не назначена')+'</b><br>'+
+   'Задействовано в остатке дня: <b>'+m.active_engineers+'/'+x.updated_engineers.length+'</b>';
+
+ $('effect').textContent='Результат перепланирования';
+ $('effectText').innerHTML=
+   'Изменено назначений: <b>'+x.changed_assignments.length+'</b><br>'+
+   'Изменено маршрутов: <b>'+x.order_changes.length+'</b><br>'+
+   'Plan Stability: <b>'+(x.plan_stability*100).toFixed(1)+'%</b>';
+}
+
+function emergencySlaText(x){
+ if(x.emergency_sla_margin_minutes===null || x.emergency_sla_margin_minutes===undefined){
+   return '—';
+ }
+ const v=x.emergency_sla_margin_minutes;
+ return (v>=0?'+':'')+v+' мин';
+}
+
+async function runEmergency(){
+ $('eventResult').textContent='Перепланирование…';
+ setLoading(true,'Перепланирую рабочий день','10-секундный поиск для срочной заявки');
+
+ try{
+   const previousMetrics=comparison.optimized.metrics;
+   let x=await fetchJSON('/api/replan?region='+regionVal()+'&road=true&strategy='+encodeURIComponent(strategyVal()),{method:'POST'});
+
+   $('eventResult').innerHTML=
+     `<b>Назначен:</b> ${x.selected_engineer||'не назначен'}<br>`+
+     `<b>ETA до начала работ:</b> ${x.emergency_eta_minutes??'—'} мин<br>`+
+     `<b>Запас SLA прибытия:</b> ${emergencySlaText(x)}<br>`+
+     `<b>Завершение работ:</b> ${x.emergency_completion_minutes??'—'} мин от момента события<br>`+
+     `<b>Plan Stability:</b> ${(x.plan_stability*100).toFixed(1)}%<br>`+
+     `<b>Изменено назначений:</b> ${x.changed_assignments.length}<br>`+
+     `<b>Изменено маршрутов:</b> ${x.order_changes.length}`;
+
+   let d={...data,engineers:x.updated_engineers,jobs:x.replanning_jobs};
+   data=d;
+   engBy=Object.fromEntries(d.engineers.map(e=>[e.id,e]));
+   jobBy=Object.fromEntries(d.jobs.map(j=>[j.id,j]));
+
+   renderJobs();
+   drawMarkers();
+   renderEngineers(x.solution);
+   renderReplanMetrics(x,previousMetrics);
+   await drawRoutes(x.solution);
+   $('mapStatus').textContent='Перепланирован остаток рабочего дня';
+ }catch(err){
+   $('eventResult').textContent='Ошибка перепланирования: '+err;
+ }finally{
+   setLoading(false);
+ }
+}
+function demoSetBusy(isBusy,label,progress){
+ $('demoNext').disabled=isBusy;
+ $('demoClose').disabled=isBusy;
+ if(progress!==undefined)$('demoBar').style.width=progress+'%';
+ $('demoStatus').innerHTML=isBusy
+   ? '<span class="spin"></span>'+label
+   : label;
+}
+function demoMark(step,state){
+ let el=$('ds'+step);
+ el.classList.remove('active','done');
+ if(state)el.classList.add(state);
+}
+function demoResetCards(){
+ [1,2,3].forEach(i=>demoMark(i,null));
+}
+function openDemo(){
+ demoStep=0;
+ demoResetCards();
+ $('demoModal').style.display='flex';
+ $('demoBar').style.width='0%';
+ $('demoText').innerHTML=
+   '<b>Готово к демонстрации.</b><br>Стратегия: <b>'+STRATEGY_LABELS[selectedStrategy]+'</b>.<br>'+
+   'Шаг 1 покажет официальный baseline прямо на карте и в KPI.';
+ $('demoStatus').textContent='Ожидание запуска';
+ $('demoNext').disabled=false;
+ $('demoClose').disabled=false;
+ $('demoNext').textContent='Начать';
+}
+async function demoNext(){
+ const started=performance.now();
+ demoStep++;
+
+ if(demoStep===1){
+   demoMark(1,'active');
+   demoSetBusy(true,'Шаг 1/3: формирую официальный baseline…',15);
+   $('demoText').innerHTML=
+     '<b>Шаг 1. Базовый план по ТЗ</b><br>'+
+     'Заявки идут во входном порядке и назначаются первому допустимому инженеру.';
+
+   try{
+     await loadAll(false);
+     const b=comparison.baseline.metrics;
+
+     $('demoText').innerHTML=
+       '<b>Шаг 1. Базовый план по ТЗ</b><br>'+
+       'Назначено: <b>'+b.assigned_jobs+'/'+b.total_jobs+'</b><br>'+
+       'Не назначено: <b>'+b.unassigned_jobs+'</b><br>'+
+       'Задействовано: <b>'+b.active_engineers+'/'+data.engineers.length+'</b><br>'+
+       'Пробег: <b>'+b.total_distance_km.toFixed(1)+' км</b><br>'+
+       '<span class="meta">Карта сейчас показывает baseline.</span>';
+
+     demoMark(1,'done');
+     demoSetBusy(false,'Готово за '+((performance.now()-started)/1000).toFixed(1)+' с',33);
+     $('demoNext').textContent='Следующий шаг';
+   }catch(err){
+     demoStep=0;
+     demoResetCards();
+     demoSetBusy(false,'Ошибка шага',0);
+     $('demoText').textContent='Ошибка: '+err;
+   }
+   return;
+ }
+
+ if(demoStep===2){
+   demoMark(1,'done');
+   demoMark(2,'active');
+   demoSetBusy(true,'Шаг 2/3: применяю глобальную оптимизацию…',50);
+   $('demoText').innerHTML=
+     '<b>Шаг 2. Оптимизированный план</b><br>'+
+     'Оптимизатор старается выполнить максимум заявок, задействовать меньше инженеров и сократить пробег.';
+
+   try{
+     await loadAll(true);
+     const b=comparison.baseline.metrics;
+     const o=comparison.optimized.metrics;
+     const i=comparison.improvement;
+     const free=Math.max(0,b.active_engineers-o.active_engineers);
+     const extra=o.assigned_jobs-b.assigned_jobs;
+     const kmSaved=b.total_distance_km-o.total_distance_km;
+
+     $('demoText').innerHTML=
+       '<b>Шаг 2. Оптимизированный план</b><br>'+
+       'Назначено: <b>'+o.assigned_jobs+'/'+o.total_jobs+'</b> '+
+       (extra>=0?'<span class="gain">(+'+extra+')</span>':'')+'<br>'+
+       'Задействовано: <b>'+o.active_engineers+'/'+data.engineers.length+'</b><br>'+
+       (free>0?'Свободно дополнительно: <b>'+free+' инженеров</b><br>':'')+
+       'Пробег: <b>'+o.total_distance_km.toFixed(1)+' км</b><br>'+
+       'Экономия: <b>'+Math.max(0,kmSaved).toFixed(1)+' км'+
+       (i.distance_pct!==null?' / '+Math.abs(i.distance_pct).toFixed(1)+'%':'')+'</b><br>'+
+       'SLA proxy: <b>'+(o.sla_compliance*100).toFixed(1)+'%</b><br>'+
+       '<span class="meta">Карта перестроена на оптимизированные маршруты.</span>';
+
+     demoMark(2,'done');
+     demoSetBusy(false,'Готово за '+((performance.now()-started)/1000).toFixed(1)+' с',66);
+   }catch(err){
+     demoStep=1;
+     demoMark(2,null);
+     demoSetBusy(false,'Ошибка шага',33);
+     $('demoText').textContent='Ошибка: '+err;
+   }
+   return;
+ }
+
+ demoStep=3;
+ demoMark(1,'done');
+ demoMark(2,'done');
+ demoMark(3,'active');
+ demoSetBusy(true,'Шаг 3/3: добавляю срочную заявку и перепланирую…',80);
+ $('demoText').innerHTML=
+   '<b>Шаг 3. Срочная заявка</b><br>'+
+   'Фиксируем выполненные работы и 10 секунд оптимизируем только оставшийся горизонт.';
+
+ try{
+   const previousMetrics=comparison.optimized.metrics;
+   let x=await fetchJSON('/api/replan?region='+regionVal()+'&road=true&strategy='+encodeURIComponent(strategyVal()),{method:'POST'});
+
+   let d={...data,engineers:x.updated_engineers,jobs:x.replanning_jobs};
+   data=d;
+   engBy=Object.fromEntries(d.engineers.map(e=>[e.id,e]));
+   jobBy=Object.fromEntries(d.jobs.map(j=>[j.id,j]));
+
+   renderJobs();
+   drawMarkers();
+   renderEngineers(x.solution);
+   renderReplanMetrics(x,previousMetrics);
+   await drawRoutes(x.solution);
+
+   $('demoText').innerHTML=
+     '<b>Шаг 3. Результат перепланирования</b><br>'+
+     'Срочная заявка: <b>'+(x.emergency_assigned?'назначена':'не назначена')+'</b><br>'+
+     'Инженер: <b>'+(x.selected_engineer||'—')+'</b><br>'+
+     'ETA до начала работ: <b>'+(x.emergency_eta_minutes??'—')+' мин</b><br>'+
+     'Запас SLA прибытия: <b>'+emergencySlaText(x)+'</b><br>'+
+     'Завершение работ: <b>'+(x.emergency_completion_minutes??'—')+' мин от момента события</b><br>'+
+     'Обычных заявок в остатке дня: <b>'+x.assigned_regular_after_replan+'/'+x.regular_remaining_jobs_count+' назначено</b><br>'+
+     'Изменено назначений: <b>'+x.changed_assignments.length+'</b><br>'+
+     'Изменено маршрутов: <b>'+x.order_changes.length+'</b><br>'+
+     'Plan Stability: <b>'+(x.plan_stability*100).toFixed(1)+'%</b><br>'+
+     '<span class="meta">Показатели остатка дня не сравниваются с полным baseline — это разные горизонты планирования.</span>';
+
+   $('mapStatus').textContent='Перепланирован остаток рабочего дня';
+   demoMark(3,'done');
+   demoSetBusy(false,'Готово за '+((performance.now()-started)/1000).toFixed(1)+' с',100);
+   $('demoNext').textContent='Демо завершено';
+   $('demoNext').disabled=true;
+ }catch(err){
+   demoStep=2;
+   demoMark(3,null);
+   demoSetBusy(false,'Ошибка шага',66);
+   $('demoText').textContent='Ошибка: '+err;
+ }
+}
+async function uploadCustom(kind,file){
+ const fd=new FormData(); fd.append('file',file);
+ setLoading(true,'Импортирую данные',file.name);
+ try{
+   const r=await fetch('/api/import/'+kind,{method:'POST',body:fd});
+   const x=await r.json();
+   if(!r.ok)throw new Error(x.detail||'Ошибка импорта');
+   const label=kind==='engineers'?'Инженеры':'Заявки';
+   if(x.custom_ready){
+     $('customRegion').disabled=false;
+     $('region').value='custom';
+     await loadAll(true);
+     $('mapStatus').textContent=label+' импортированы: '+x.count+'. Пользовательский набор готов.';
+   }else{
+     $('mapStatus').textContent=label+' импортированы: '+x.count+'. Импортируйте второй файл.';
+   }
+ }catch(err){
+   $('mapStatus').textContent='Ошибка импорта';
+   alert((err.message||String(err))+'\n\nПодсказка: можно использовать наши шаблоны или CSV организатора. Если координат нет, заявки будут размещены по адресу/району, а контрольный файл с колонкой «Бригада» можно импортировать как список инженеров.');
+ }finally{
+   setLoading(false);
+ }
+}
+
+document.querySelectorAll('.strategyCard').forEach(card=>card.addEventListener('click',()=>{pendingStrategy=card.dataset.strategy;refreshStrategyCards();}));
+$('strategyBtn').addEventListener('click',openStrategyModal);
+$('allRoutesBtn').addEventListener('click',showAllRoutes);
+$('strategyCancel').addEventListener('click',()=>{$('strategyModal').style.display='none'});
+$('strategyApply').addEventListener('click',async()=>{selectedStrategy=pendingStrategy;$('strategyBtn').textContent='⚙ Стратегия: '+STRATEGY_LABELS[selectedStrategy];$('strategyModal').style.display='none';await loadAll(true);});
+$('engFile').addEventListener('change',e=>{if(e.target.files[0])uploadCustom('engineers',e.target.files[0]);});
+$('jobFile').addEventListener('change',e=>{if(e.target.files[0])uploadCustom('jobs',e.target.files[0]);});
+$('region').addEventListener('change',()=>{loadSeq++;demoStep=0;$('demoNext').disabled=false;loadAll(true)});
+$('optimizeBtn').addEventListener('click',()=>loadAll(true));
+$('tabEng').addEventListener('click',()=>tab('eng'));$('tabProb').addEventListener('click',()=>tab('prob'));$('tabData').addEventListener('click',()=>tab('data'));
+$('emergencyBtn').addEventListener('click',()=>{$('eventModal').style.display='flex';$('eventResult').textContent='Добавляется срочная аварийная заявка в 15:00.'});
+$('runEvent').addEventListener('click',runEmergency);$('demoBtn').addEventListener('click',openDemo);$('demoNext').addEventListener('click',demoNext);
+window.addEventListener('load',()=>{initMap();map.once('load',()=>loadAll(true))});
+</script>
+</body></html>

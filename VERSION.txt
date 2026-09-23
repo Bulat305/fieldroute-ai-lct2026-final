@@ -1,0 +1,1 @@
+FieldRoute AI v0.6.9 final hotfix — stable 10s main + 10s replan

@@ -1,0 +1,3 @@
+id,lat,lon,priority,service_minutes,window_start,window_end,sla_deadline,required_skills,required_equipment
+J001,55.7600,37.6400,1,45,09:00,11:00,10:30,GPON:2,OTDR
+J002,55.7300,37.5900,3,60,10:00,15:00,14:00,ETHERNET:2,LAPTOP

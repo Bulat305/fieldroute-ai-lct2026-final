@@ -1,0 +1,34 @@
+{
+  "source": "Нормативы.xlsx",
+  "interpretation": "service_minutes = technical_minutes + documents_minutes; travel_minutes = max(OSRM/vehicle travel, normative road_minutes)",
+  "items": {
+    "Подключение": {
+      "name": "Подключение клиентов Базовая",
+      "road_minutes": 20,
+      "technical_minutes": 60,
+      "documents_minutes": 10,
+      "base_normative_minutes": 90
+    },
+    "Глобальная проблема": {
+      "name": "Аварий на ТКД",
+      "road_minutes": 20,
+      "technical_minutes": 80,
+      "documents_minutes": 0,
+      "base_normative_minutes": 100
+    },
+    "Дозаказ": {
+      "name": "Дозаказ оборудования",
+      "road_minutes": 20,
+      "technical_minutes": 10,
+      "documents_minutes": 10,
+      "base_normative_minutes": 40
+    },
+    "Локальная заявка": {
+      "name": "Локальная заявка/ремонт у клиента",
+      "road_minutes": 20,
+      "technical_minutes": 30,
+      "documents_minutes": 0,
+      "base_normative_minutes": 50
+    }
+  }
+}
