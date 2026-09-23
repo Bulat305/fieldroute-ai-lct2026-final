@@ -4,7 +4,7 @@
 
 Конкурсный прототип для задачи «Билайн Бизнес» / ЛЦТ 2026.
 
-**Web demo:** Web demo: https://fieldroute-ai-lct2026-final.onrender.com/  
+**Web demo:** https://fieldroute-ai-lct2026-final.onrender.com/  
 **Версия:** v0.6.9 stable  
 **Основной solver:** Google OR-Tools, лимит поиска 10 секунд
 

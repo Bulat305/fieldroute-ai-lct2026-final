@@ -11,7 +11,7 @@
 После создания репозитория вставить сюда:
 
 ```text
-SOURCECRAFT_URL = <добавить>
+https://sourcecraft.dev/lct-hackaton-2026/case-13-field-engineer-routing-team-63
 ```
 
 Резервный GitHub:
@@ -39,7 +39,7 @@ docs/DEMO_SCRIPT.md
 ## 3. Прототип
 
 ```text
-https://fieldroute-ai-lct2026-final.onrender.com
+https://fieldroute-ai-lct2026-final.onrender.com/
 ```
 
 Перед отправкой:
