@@ -17,7 +17,7 @@ SOURCECRAFT_URL = <добавить>
 Резервный GitHub:
 
 ```text
-https://github.com/Bulat305/fieldroute-ai
+https://github.com/Bulat305/fieldroute-ai-lct2026-final
 ```
 
 Перед сдачей проверить, что эксперты имеют доступ к репозиторию.
@@ -39,7 +39,7 @@ docs/DEMO_SCRIPT.md
 ## 3. Прототип
 
 ```text
-https://fieldroute-ai.onrender.com
+https://fieldroute-ai-lct2026-final.onrender.com
 ```
 
 Перед отправкой:
