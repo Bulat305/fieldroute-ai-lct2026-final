@@ -1,99 +1,79 @@
-# FieldRoute AI v0.5.7 — Render Deploy
+# FieldRoute AI — Render Deployment
 
-## Что добавлено
+## Production deployment
 
-- `render.yaml` — Blueprint для Render;
-- `.python-version` — Python 3.12.6;
-- `/health` — health check;
-- production start command:
-  `uvicorn app.main:app --host 0.0.0.0 --port $PORT`;
-- `.gitignore`.
+Рабочий web-прототип FieldRoute AI:
 
-## Вариант 1 — через GitHub + Render
+https://fieldroute-ai-lct2026-final.onrender.com/
 
-### 1. Создать репозиторий GitHub
+Версия: `v0.6.9 stable`
 
-Создайте новый пустой репозиторий, например:
+## Render configuration
 
-`fieldroute-ai`
+Проект подготовлен для развертывания как Render Web Service.
 
-Не добавляйте README/.gitignore при создании, потому что они уже есть в проекте.
+### Runtime
 
-### 2. Загрузить проект в GitHub
-
-Откройте PowerShell в корне проекта:
-
-```powershell
-git init
-git add .
-git commit -m "FieldRoute AI v0.5.7 deploy"
-git branch -M main
-git remote add origin https://github.com/ВАШ_ЛОГИН/fieldroute-ai.git
-git push -u origin main
+```text
+Python 3.12.6
 ```
 
-Если Git не установлен:
-
-```powershell
-winget install --id Git.Git
-```
-
-После установки откройте новое окно PowerShell.
-
-### 3. Render
-
-1. Откройте Render Dashboard.
-2. New → Web Service.
-3. Подключите GitHub.
-4. Выберите `fieldroute-ai`.
-5. Render должен обнаружить `render.yaml`.
-6. Если создаёте Web Service вручную:
-
-Build Command:
+### Build command
 
 ```text
 pip install -r requirements.txt
 ```
 
-Start Command:
+### Start command
 
 ```text
 uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
-Python:
-
-```text
-3.12.6
-```
-
-Health check:
+### Health check
 
 ```text
 /health
 ```
 
-### 4. После Deploy
+## Файлы конфигурации
 
-Render выдаст ссылку вида:
+- `render.yaml` — конфигурация Render;
+- `.python-version` — версия Python;
+- `requirements.txt` — зависимости проекта;
+- `start.sh` — production start script;
+- `.gitignore` — исключения для Git.
 
-`https://fieldroute-ai-xxxx.onrender.com`
+## Основные endpoints
 
-Проверьте:
+- `/` — web-интерфейс FieldRoute AI;
+- `/health` — проверка состояния сервиса;
+- `/docs` — Swagger / OpenAPI документация FastAPI.
 
-- `/`
-- `/health`
-- `/docs`
+## Стек развернутого решения
 
-## Free plan
+- **Backend:** FastAPI;
+- **Optimization:** Google OR-Tools;
+- **Routing:** OSRM;
+- **Map:** MapLibre GL JS / OpenStreetMap;
+- **Deployment:** Render.
 
-Free plan подходит для проверки и передачи ссылки жюри/команде, но сервис может уходить в sleep при отсутствии запросов. Первый запрос после простоя может запускаться заметно дольше.
+Основной и аварийный solver используют лимит поиска 10 секунд.
 
-Для самой защиты лучше либо открыть сервис заранее, либо перейти на платный compute без cold start.
+## Работа с маршрутизацией
 
-## Ограничения текущего MVP
+Для расчета дорожного времени и геометрии маршрутов используется внешний OSRM.
 
-- история и сценарии хранятся в RAM и очищаются при рестарте;
-- внешний OSRM может отвечать медленно;
-- при недоступности OSRM используется `haversine-fallback`;
-- persistent database пока не используется.
+При недоступности routing-сервиса предусмотрен fallback-режим на основе географического расстояния.
+
+## Особенности runtime
+
+Конкурсный MVP не использует persistent production database.
+
+Состояние пользовательского импорта и часть временных данных хранятся в памяти процесса и очищаются при рестарте сервиса.
+
+Внешний OSRM может иметь переменное время ответа.
+
+## Статус
+
+Render используется как публичный стенд конкурсного прототипа FieldRoute AI для ЛЦТ 2026.
